@@ -26,8 +26,8 @@ dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4"]
 upstreamiq = "upstreamiq.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/wajahat/upstreamiq"
-Repository = "https://github.com/wajahat/upstreamiq"
+Homepage = "https://github.com/rajawajahat/upstreamiq"
+Repository = "https://github.com/rajawajahat/upstreamiq"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

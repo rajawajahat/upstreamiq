@@ -1,113 +1,167 @@
 # upstreamiq
 
-> Cross-repo context bridge for AI coding agents.
+**Upstream intelligence for AI coding agents.**
 
-When you work across multiple repos — frontend + api-service + shared-types —
-every Claude Code / Cursor / Copilot session starts blind. It has no idea what
-changed upstream, what types your API returns, or what contracts your services expose.
-
-upstreamiq fixes this by automatically generating a surgical `CLAUDE.upstream.md`
-in each downstream repo, containing only what that repo needs to know about its
-dependencies. Always fresh. Always minimal. Zero manual maintenance.
-
-## Install
+> Your Claude Code / Cursor session is blind about your other repos. upstreamiq fixes that in 60 seconds.
 
 ```bash
 pip install upstreamiq
 ```
 
-## Quickstart (5 minutes)
+---
+
+## The problem
+
+You work across 3 repos: `frontend` · `api-service` · `shared-types`
+
+Every AI coding session starts from zero:
+- Claude has no idea what `api-service` exports
+- It uses `User.email` — which changed to `emails[]` three weeks ago
+- You spend 10 minutes re-explaining the same types. Every. Single. Session.
+
+## The fix
+
+upstreamiq extracts the **public interface** of your upstream repos — types, endpoints, OpenAPI contracts — and writes a surgical `CLAUDE.upstream.md` into each downstream repo. Always fresh. Always under 200 lines. Zero manual work.
+
+```
+shared-types ──► api-service ──► frontend
+                            └──► mobile
+```
+
+Each downstream repo gets a `CLAUDE.upstream.md` like this:
+
+```markdown
+## api-service  [calls_rest]
+> Last synced: a3f9c2b · 2 hours ago
+> ⚠ BREAKING CHANGE: User.email → User.emails[]  (commit a3f9c2b)
+
+### Exported types
+class User(BaseModel):
+    id: str
+    emails: list[str]   # changed from: email: str
+    name: str
+
+### API endpoints
+GET  /api/users/{user_id}  →  User
+POST /api/users             →  User
+```
+
+Your AI agent reads this at the start of every session. It already knows the upstream shape. It already sees the breaking change. **You write correct code the first time.**
+
+---
+
+## Quickstart
 
 ```bash
 # 1. Register your repos
 upstreamiq add api-service ~/projects/api-service
 upstreamiq add shared-types ~/projects/shared-types
 upstreamiq add frontend ~/projects/frontend
-upstreamiq add mobile ~/projects/mobile
 
 # 2. Define relationships
 upstreamiq link frontend --consumes api-service
 upstreamiq link frontend --consumes shared-types --type imports_types
-upstreamiq link mobile --consumes api-service
-upstreamiq link mobile --consumes shared-types --type imports_types
 upstreamiq link api-service --consumes shared-types --type imports_types
 
-# 3. Generate upstream context for all downstream repos
+# 3. Generate upstream context
 upstreamiq sync
+# → writes CLAUDE.upstream.md into frontend/
 
-# CLAUDE.upstream.md now exists in: frontend/ and mobile/
-# Your AI agents already know about the upstream API surface.
-
-# 4. Keep it fresh (auto-syncs on every upstream commit)
+# 4. Keep it fresh automatically
 upstreamiq watch
+# → polls git every 30s, re-syncs on every upstream commit
 ```
 
-## The problem it solves
+Then add one line to your `CLAUDE.md`:
 
-Without upstreamiq:
-- You open Claude Code in `frontend`
-- Claude Code has no idea what `api-service` exports
-- You spend 10 minutes explaining the API shape every session
-- Claude writes code using the OLD User.email field (it changed to emails[] last week)
-- It compiles locally. It crashes in production.
+```
+@CLAUDE.upstream.md
+```
 
-With upstreamiq:
-- `frontend/CLAUDE.upstream.md` already contains the current API surface
-- Claude Code reads it automatically (imported in CLAUDE.md)
-- Claude knows `User.emails` is now an array
-- It also sees the `⚠ BREAKING CHANGE` notice flagging the recent change
-- You write correct code the first time.
+Done. Claude Code reads the upstream context at the start of every session.
+
+---
 
 ## Cross-repo task planning
 
+Working on a feature that spans multiple repos? upstreamiq figures out the right order automatically:
+
 ```bash
 upstreamiq task "add phone number to user profiles"
-# Generates a TASK.md with:
-# Step 1: shared-types (change User type first)
-# Step 2: api-service  (add field + migration)
-# Step 3: frontend     (update form UI)
-# Step 4: mobile       (update form UI)
-# Each step has the exact Claude Code instruction to use.
 ```
+
+Output:
+```
+Step 1: shared-types  → add PhoneNumber type       (no upstreams — start here)
+Step 2: api-service   → add field + endpoint        (depends on shared-types)
+Step 3: frontend      → update form UI              (depends on api-service)
+Step 4: mobile        → update form UI              (depends on api-service)
+```
+
+Each step includes the exact instruction to paste into Claude Code. Run `upstreamiq sync` between steps — every session picks up where the last left off.
+
+---
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `upstreamiq init [PATH]` | Scan directory and register all repos |
-| `upstreamiq add NAME PATH` | Register a single repo |
+| `upstreamiq add NAME PATH` | Register a repo |
 | `upstreamiq link A --consumes B` | Define that A depends on B |
+| `upstreamiq sync` | Generate CLAUDE.upstream.md for all downstream repos |
+| `upstreamiq watch` | Watch for upstream changes and auto-sync |
+| `upstreamiq extract [REPO]` | Extract the API surface from a repo |
+| `upstreamiq changes` | Show recent breaking changes detected |
+| `upstreamiq task "description"` | Generate a cross-repo task plan |
+| `upstreamiq init [PATH]` | Scan a directory and register all git repos |
 | `upstreamiq list` | Show repos and dependency graph |
-| `upstreamiq extract [REPO]` | Extract API surface from repos |
-| `upstreamiq sync [REPO]` | Generate/update CLAUDE.upstream.md files |
-| `upstreamiq watch` | Watch for changes and auto-sync |
-| `upstreamiq changes [UPSTREAM]` | Show recent breaking changes |
-| `upstreamiq task "description"` | Generate cross-repo task plan |
-| `upstreamiq show REPO` | Show extracted surface for a repo |
-| `upstreamiq status` | Health check of your upstreamiq setup |
+| `upstreamiq show REPO` | Show the full extracted surface for a repo |
+| `upstreamiq status` | Health check of your setup |
+
+---
+
+## What gets extracted
+
+| Language | Types | Routes |
+|---|---|---|
+| TypeScript / JavaScript | `export interface`, `export type` | Express, Next.js App Router |
+| Python | Pydantic `BaseModel`, `@dataclass` | FastAPI, Flask, Django |
+| Any | OpenAPI `components/schemas` | OpenAPI/Swagger YAML or JSON |
+| Go, Rust, Ruby, etc. | — | URL pattern scan (fallback) |
+
+---
 
 ## How it works
 
-1. **Extract** — upstreamiq reads your repos and extracts the public interface:
-   TypeScript exported types, FastAPI/Express routes, OpenAPI specs.
+```
+git commit in api-service
+        │
+        ▼
+upstreamiq detects new commit (watch mode, every 30s)
+        │
+        ▼
+re-extracts public surface → types + endpoints
+        │
+        ▼
+compares with previous surface → finds breaking changes
+        │
+        ▼
+rewrites CLAUDE.upstream.md in frontend/ and mobile/
+with ⚠ BREAKING CHANGE notices at the top
+        │
+        ▼
+you open Claude Code → it already knows
+```
 
-2. **Watch** — A background process polls git for new commits in upstream repos.
-   When something changes, it detects if it's a breaking change.
+---
 
-3. **Sync** — Generates a surgical `CLAUDE.upstream.md` in each downstream repo.
-   Max 200 lines. Only what that repo needs to know. Breaking changes highlighted.
+## Configuration (optional)
 
-4. **Import** — Add `@CLAUDE.upstream.md` to your `CLAUDE.md`.
-   Claude Code reads it at the start of every session. Done.
-
-## Configuration
-
-Optionally add a `.upstreamiq.toml` to any repo for fine-grained control:
+Add a `.upstreamiq.toml` to any repo for fine-grained control:
 
 ```toml
 [repo]
 name = "api-service"
-description = "FastAPI REST API for the SaaS platform"
 language = "python"
 api_spec = "openapi.yaml"
 
@@ -123,15 +177,8 @@ consumer_notes = [
 ]
 ```
 
-## Supported languages
-
-| Language | Types | Routes | Notes |
-|---|---|---|---|
-| TypeScript / JavaScript | `export interface`, `export type` | Express, Next.js App Router | regex-based |
-| Python | Pydantic `BaseModel`, `@dataclass` | FastAPI, Flask, Django | AST-based |
-| Any (OpenAPI spec) | `components/schemas` | `paths` | YAML or JSON |
-| Go, Rust, Ruby, etc. | — | URL pattern scan | generic fallback |
+---
 
 ## License
 
-MIT
+MIT · Built by [Raja Wajahat](https://github.com/rajawajahat)
