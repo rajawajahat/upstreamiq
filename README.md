@@ -1,4 +1,4 @@
-# RepoLink
+# upstreamiq
 
 > Cross-repo context bridge for AI coding agents.
 
@@ -6,7 +6,7 @@ When you work across multiple repos — frontend + api-service + shared-types �
 every Claude Code / Cursor / Copilot session starts blind. It has no idea what
 changed upstream, what types your API returns, or what contracts your services expose.
 
-RepoLink fixes this by automatically generating a surgical `CLAUDE.upstream.md`
+upstreamiq fixes this by automatically generating a surgical `CLAUDE.upstream.md`
 in each downstream repo, containing only what that repo needs to know about its
 dependencies. Always fresh. Always minimal. Zero manual maintenance.
 
@@ -44,14 +44,14 @@ upstreamiq watch
 
 ## The problem it solves
 
-Without RepoLink:
+Without upstreamiq:
 - You open Claude Code in `frontend`
 - Claude Code has no idea what `api-service` exports
 - You spend 10 minutes explaining the API shape every session
 - Claude writes code using the OLD User.email field (it changed to emails[] last week)
 - It compiles locally. It crashes in production.
 
-With RepoLink:
+With upstreamiq:
 - `frontend/CLAUDE.upstream.md` already contains the current API surface
 - Claude Code reads it automatically (imported in CLAUDE.md)
 - Claude knows `User.emails` is now an array
@@ -84,11 +84,11 @@ upstreamiq task "add phone number to user profiles"
 | `upstreamiq changes [UPSTREAM]` | Show recent breaking changes |
 | `upstreamiq task "description"` | Generate cross-repo task plan |
 | `upstreamiq show REPO` | Show extracted surface for a repo |
-| `upstreamiq status` | Health check of your RepoLink setup |
+| `upstreamiq status` | Health check of your upstreamiq setup |
 
 ## How it works
 
-1. **Extract** — RepoLink reads your repos and extracts the public interface:
+1. **Extract** — upstreamiq reads your repos and extracts the public interface:
    TypeScript exported types, FastAPI/Express routes, OpenAPI specs.
 
 2. **Watch** — A background process polls git for new commits in upstream repos.
