@@ -1,0 +1,42 @@
+[project]
+name = "upstreamiq"
+version = "0.1.1"
+description = "Upstream intelligence for AI coding agents — keeps CLAUDE.md in sync across your entire repo graph"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["ai", "claude", "cursor", "developer-tools", "context", "monorepo", "multi-repo"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.7",
+    "gitpython>=3.1",
+    "watchdog>=4.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+treesitter = ["tree-sitter>=0.21", "tree-sitter-typescript>=0.21"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.4"]
+
+[project.scripts]
+upstreamiq = "upstreamiq.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/wajahat/upstreamiq"
+Repository = "https://github.com/wajahat/upstreamiq"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=upstreamiq --cov-report=term-missing -v"
