@@ -1,6 +1,6 @@
 [project]
 name = "upstreamiq"
-version = "0.1.1"
+version = "0.1.2"
 description = "Upstream intelligence for AI coding agents — keeps CLAUDE.md in sync across your entire repo graph"
 readme = "README.md"
 requires-python = ">=3.11"
